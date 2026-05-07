@@ -127,6 +127,20 @@ server.resource(
   }
 );
 
+server.resource(
+  'pair://conflicts',
+  'pair://conflicts',
+  async () => {
+    return {
+      contents: [{
+        uri: 'pair://conflicts',
+        text: JSON.stringify(conflictDetector.getActive(state.conflicts)),
+        mimeType: 'application/json',
+      }],
+    };
+  }
+);
+
 const transport = new StdioServerTransport();
 await server.connect(transport);
 
