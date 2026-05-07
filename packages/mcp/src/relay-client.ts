@@ -87,8 +87,18 @@ class RelayClient {
     } else if (envelope.type === 'conflict') {
       const conflict = envelope.payload as ConflictNotification;
       this.state.conflicts.push(conflict);
-    } else if (envelope.type === 'join' || envelope.type === 'create') {
+    } else if (envelope.type === 'status') {
+      const payload = envelope.payload as { code: string; peerCount: number };
       this.connectionState = 'in-room';
+      this.state.connected = true;
+      this.state.roomInfo = {
+        code: payload.code,
+        peers: Array.from({ length: payload.peerCount }, (_, i) => ({
+          id: i === 0 ? this.state!.peerId : `peer-unknown-${i}`,
+          joinedAt: Date.now(),
+        })),
+        createdAt: this.state.roomInfo?.createdAt ?? Date.now(),
+      };
     } else if (envelope.type === 'leave') {
       if (envelope.peerId !== this.state.peerId && this.state.roomInfo) {
         this.state.roomInfo.peers = this.state.roomInfo.peers.filter(p => p.id !== envelope.peerId);
@@ -117,4 +127,4 @@ class RelayClient {
 }
 
 export const relayClient = new RelayClient();
-export { DEFAULT_RELAY_URL };
+export { DEFAULT_RELAY_URL, RelayClient };

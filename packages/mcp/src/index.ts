@@ -2,10 +2,13 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { createState } from './state.ts';
-import { relayClient } from './relay-client.ts';
+import { relayClient, DEFAULT_RELAY_URL } from './relay-client.ts';
 import type { SharedContextItem } from '@opencode-sync/shared';
 
 const state = createState();
+
+const relayUrl = process.env.OPENCODE_SYNC_RELAY ?? DEFAULT_RELAY_URL;
+relayClient.connect(relayUrl, state);
 
 const server = new McpServer({ name: 'opencode-sync', version: '0.1.0' });
 
@@ -48,7 +51,7 @@ server.tool(
   { limit: z.number().optional() },
   async ({ limit = 10 }) => {
     if (!state.connected) {
-      return { content: [{ type: 'text', text: 'Not connected to relay.' }] };
+      return { content: [{ type: 'text', text: JSON.stringify({ items: [], note: 'Not connected to relay — no items received yet.' }) }] };
     }
 
     const items = [...state.receivedItems].reverse().slice(0, limit);
