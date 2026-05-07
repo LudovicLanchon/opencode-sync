@@ -3,12 +3,26 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import { createState } from './state.ts';
 import { relayClient, DEFAULT_RELAY_URL } from './relay-client.ts';
+import { conflictDetector } from './conflict-detector.ts';
 import type { SharedContextItem } from '@opencode-sync/shared';
 
 const state = createState();
 
 const relayUrl = process.env.OPENCODE_SYNC_RELAY ?? DEFAULT_RELAY_URL;
+const roomCode = process.env.OPENCODE_SYNC_ROOM;
+
 relayClient.connect(relayUrl, state);
+
+if (roomCode) {
+  setTimeout(() => {
+    relayClient.joinRoom(roomCode);
+  }, 100);
+}
+
+relayClient.onItemReceived = (item) => {
+  const conflicts = conflictDetector.record(item.peerId, item.content);
+  state.conflicts.push(...conflicts);
+};
 
 const server = new McpServer({ name: 'opencode-sync', version: '0.1.0' });
 

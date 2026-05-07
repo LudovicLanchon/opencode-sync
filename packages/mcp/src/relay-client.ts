@@ -11,6 +11,7 @@ class RelayClient {
   private connectionState: ConnectionState = 'disconnected';
   private reconnectAttempts = 0;
   private state: MpcState | null = null;
+  onItemReceived: ((item: SharedContextItem) => void) | null = null;
 
   connect(relayUrl: string, state: MpcState): void {
     this.state = state;
@@ -36,6 +37,17 @@ class RelayClient {
       throw new Error('Not connected to relay');
     }
     this.ws.send(JSON.stringify(msg));
+  }
+
+  joinRoom(code: string): void {
+    if (!this.ws || this.connectionState === 'disconnected' || this.connectionState === 'connecting') {
+      throw new Error('Not connected to relay');
+    }
+    this.ws.send(JSON.stringify({
+      type: 'join',
+      roomId: code,
+      peerId: this.state?.peerId,
+    }));
   }
 
   getConnectionState(): ConnectionState {
@@ -84,6 +96,7 @@ class RelayClient {
     if (envelope.type === 'share') {
       const item = envelope.payload as SharedContextItem;
       this.state.receivedItems.push(item);
+      if (this.onItemReceived) this.onItemReceived(item);
     } else if (envelope.type === 'conflict') {
       const conflict = envelope.payload as ConflictNotification;
       this.state.conflicts.push(conflict);
